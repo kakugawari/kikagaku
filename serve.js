@@ -40,5 +40,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`しきつめパズル: http://localhost:${PORT}/`);
+  console.log(`作図: http://localhost:${PORT}/`);
 });

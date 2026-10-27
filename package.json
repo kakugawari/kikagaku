@@ -1,7 +1,7 @@
 {
-  "name": "app-template",
+  "name": "sakuzu",
   "version": "1.0.0",
-  "description": "ビルドなしで動くアプリの雛形 (進め方のルールつき)",
+  "description": "言葉から、円と直線だけでロゴを組み立てる",
   "private": true,
   "scripts": {
     "start": "node serve.js",

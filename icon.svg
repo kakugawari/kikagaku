@@ -1,5 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="アプリの雛形">
-  <rect width="512" height="512" rx="108" fill="#151a2e"/>
-  <rect x="96" y="96" width="200" height="200" rx="28" fill="#4cc9f0"/>
-  <rect x="216" y="216" width="200" height="200" rx="28" fill="#ffd166"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="作図">
+  <rect width="512" height="512" fill="#E8E5DE"/>
+  <g fill="none" stroke="#5F5B52" stroke-opacity=".45" stroke-width="3">
+    <circle cx="256" cy="256" r="196"/>
+    <circle cx="256" cy="200" r="96"/>
+    <path d="M40 420 L472 92 M60 256 H452 M256 40 V472"/>
+  </g>
+  <path fill="#48443A" fill-rule="evenodd" d="M256 92 A164 164 0 1 0 256 420 A164 164 0 1 0 256 92 Z M256 120 A136 136 0 1 1 256 392 A136 136 0 1 1 256 120 Z"/>
+  <path fill="#48443A" d="M256 160 A96 96 0 0 1 352 256 L256 360 L160 256 A96 96 0 0 1 256 160 Z"/>
 </svg>

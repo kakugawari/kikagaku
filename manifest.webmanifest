@@ -1,0 +1,15 @@
+{
+  "name": "作図",
+  "short_name": "作図",
+  "description": "言葉から、円と直線だけでロゴを組み立てる",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#E8E5DE",
+  "theme_color": "#E8E5DE",
+  "icons": [
+    { "src": "./icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

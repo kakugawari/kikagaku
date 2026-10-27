@@ -3,31 +3,104 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>アプリの雛形</title>
-<meta name="description" content="ビルドなしで動くアプリの雛形">
-<meta name="theme-color" content="#151a2e">
+<title>作図</title>
+<meta name="description" content="言葉から、円と直線だけでロゴを組み立てる">
+<meta name="theme-color" content="#E8E5DE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C1B19" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="作図">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-
-<div id="app">
-  <header id="topbar">
-    <h1 class="title">アプリの雛形</h1>
-    <div class="topbar-actions">
-      <button type="button" id="btnAction" class="btn btn-primary">ためす</button>
+<div class="wrap">
+  <header>
+    <div class="head">
+      <h1>作図</h1>
+      <button type="button" class="ghost gear" id="openSettings" aria-label="設定">設定</button>
     </div>
+    <p>言葉を渡すと、円と直線だけでロゴを組み立てます。</p>
   </header>
 
-  <main id="stage">
-    <p class="lead">ここにアプリを作る。</p>
-    <p class="result" id="result">—</p>
-    <p class="note">
-      ロジックは <code>src/core.js</code> に、画面は <code>src/app.js</code> に書く。<br>
-      <code>npm test</code> でロジックを、<code>npm run test:ui</code> で画面を確かめる。
-    </p>
-  </main>
+  <section class="compose">
+    <textarea id="desc" placeholder="例:低い岩に片足をのせ、振り返って吠えるライオン。力強く、守りの紋章のように。"></textarea>
+    <input type="text" id="brand" placeholder="ブランド名(任意・設計図の上に入ります)" maxlength="24">
+    <div class="row">
+      <span class="lbl">かたち</span>
+      <div class="seg" id="frameSeg">
+        <button type="button" data-v="auto" aria-pressed="true">おまかせ</button>
+        <button type="button" data-v="ring" aria-pressed="false">円紋</button>
+        <button type="button" data-v="free" aria-pressed="false">単体</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="lbl">作図</span>
+      <div class="seg" id="tierSeg">
+        <button type="button" data-v="default" aria-pressed="true">ふつう</button>
+        <button type="button" data-v="complex" aria-pressed="false">ていねい</button>
+      </div>
+    </div>
+    <button type="button" class="go" id="go">作図する</button>
+    <div class="status" id="status"><span id="msg"></span><button type="button" class="ghost stop" id="stop">止める</button></div>
+  </section>
+
+  <div class="sheetbox" id="stage">
+    <div class="empty">
+      <div>
+        <svg viewBox="0 0 120 120" fill="none" stroke="#6E6A60" stroke-width="1"><circle cx="60" cy="60" r="44"/><circle cx="60" cy="48" r="22"/><circle cx="78" cy="70" r="14"/><path d="M4 100 L116 20 M10 60 H110 M60 4 V116"/></svg>
+        説明を書いて「作図する」を押すと、<br>ここに設計図が描かれます。
+      </div>
+    </div>
+  </div>
+
+  <div class="tools" id="tools">
+    <div class="seg" id="viewSeg">
+      <button type="button" data-v="sheet" aria-pressed="true">設計図</button>
+      <button type="button" data-v="logo" aria-pressed="false">ロゴ</button>
+    </div>
+    <div class="inks" id="inks"></div>
+  </div>
+
+  <div class="fix" id="fix">
+    <input type="text" id="fixText" placeholder="なおしたいところ(例:たてがみをもっと大きく)" enterkeyhint="send">
+    <button type="button" class="ghost" id="fixGo">なおす</button>
+  </div>
+
+  <div class="saves" id="saves">
+    <button type="button" class="ghost" data-save="sheet">設計図 SVG</button>
+    <button type="button" class="ghost" data-save="svg">ロゴ SVG</button>
+    <button type="button" class="ghost" data-save="png">ロゴ PNG</button>
+  </div>
+
+  <section id="histSec" hidden>
+    <h2>これまでの作図</h2>
+    <div class="hist" id="hist"></div>
+  </section>
+
+  <p class="ver" id="ver"></p>
 </div>
+
+<dialog id="settings" aria-labelledby="setTitle">
+  <form method="dialog" class="sheet">
+    <h2 id="setTitle">設定</h2>
+    <p class="note" id="setMode"></p>
+    <div id="keyArea">
+      <label class="lbl" for="apiKey">Anthropic API キー</label>
+      <input type="password" id="apiKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-...">
+      <p class="note">キーはこの端末のブラウザの中だけに保存し、作図を頼むときに Anthropic へ直接送ります。ほかへは送りません。料金はこのキーのアカウントにかかります。キーは <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> で作れます。</p>
+    </div>
+    <div class="row end">
+      <button type="button" class="ghost" id="keyClear">キーを消す</button>
+      <button type="button" class="ghost" id="keySave">保存</button>
+      <button value="close" class="ghost">閉じる</button>
+    </div>
+  </form>
+</dialog>
 
 <script src="./core.js"></script>
 <script src="./app.js"></script>

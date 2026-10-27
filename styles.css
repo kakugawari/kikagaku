@@ -1,132 +1,110 @@
 /* 見た目。色は :root にまとめ、明るい画面と暗い画面の両方を用意する。 */
 
 :root {
-  --bg: #10142a;
-  --bg-2: #171d3a;
-  --line: #2e3868;
-  --text: #eef1ff;
-  --muted: #9aa3cf;
-  --accent: #ffd166;
-  --accent-ink: #2a2200;
-  color-scheme: dark;
+  --bg: #E8E5DE; --surface: #F5F3EE; --ink: #2C2924; --muted: #776F63; --line: #CEC7BA;
+  --btn: #48443A; --btnInk: #F5F3EE; --field: #FFFFFF;
+  color-scheme: light;
 }
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f3f5fb;
-    --bg-2: #ffffff;
-    --line: #dbe0f0;
-    --text: #1b1f36;
-    --muted: #666e93;
-    --accent: #ffb703;
-    --accent-ink: #2a1f00;
-    color-scheme: light;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1C1B19; --surface: #262421; --ink: #ECE7DD; --muted: #A49C8E; --line: #3B3833;
+    --btn: #DCD5C6; --btnInk: #1C1B19; --field: #1F1E1B; color-scheme: dark;
   }
 }
-
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  height: 100%;
-  overflow: hidden;
-  overscroll-behavior: none;
+:root[data-theme="dark"] {
+  --bg: #1C1B19; --surface: #262421; --ink: #ECE7DD; --muted: #A49C8E; --line: #3B3833;
+  --btn: #DCD5C6; --btnInk: #1C1B19; --field: #1F1E1B; color-scheme: dark;
 }
 
+[hidden] { display: none !important; }
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI",
-               system-ui, -apple-system, "Segoe UI", sans-serif;
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
+  font-size: 15px; line-height: 1.6;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }
 
-#app {
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+/* iPhone 16 Plus (430pt) 決め打ち。安全域は上 59 / 下 34 */
+.wrap {
+  padding: calc(env(safe-area-inset-top, 0px) + 22px) 18px calc(env(safe-area-inset-bottom, 0px) + 48px);
 }
 
-#topbar {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 10px 14px;
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--line);
+.head { display: flex; align-items: center; justify-content: space-between; }
+header h1 { font-family: "Shippori Mincho", serif; font-weight: 600; font-size: 34px; letter-spacing: .18em; margin: 0; line-height: 1.2; }
+header p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+
+.compose { margin-top: 20px; display: grid; gap: 12px; }
+textarea, input[type=text], input[type=password] {
+  width: 100%; font: inherit; font-size: 16px; /* 16px 未満だと iOS が拡大する */
+  color: var(--ink); background: var(--field);
+  border: 1px solid var(--line); border-radius: 10px; padding: 12px 13px; outline: none;
 }
-
-.title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: .04em;
+textarea { min-height: 92px; resize: vertical; line-height: 1.7; }
+textarea:focus, input:focus { border-color: var(--muted); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.row.end { justify-content: flex-end; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.seg button { font: inherit; font-size: 13px; border: 0; background: none; color: var(--muted); padding: 8px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed=true] { background: var(--btn); color: var(--btnInk); }
+.lbl { font-size: 12px; color: var(--muted); margin-right: 2px; min-width: 3em; }
+.go {
+  font: inherit; font-family: "Shippori Mincho", serif; font-size: 18px; letter-spacing: .3em; font-weight: 600;
+  background: var(--btn); color: var(--btnInk); border: 0; border-radius: 12px; padding: 14px; cursor: pointer; width: 100%;
 }
+.go:disabled { opacity: .45; cursor: default; }
+.ghost { font: inherit; font-size: 13px; background: none; color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.ghost:disabled { opacity: .45; }
+button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--muted); outline-offset: 2px; }
 
-.topbar-actions { margin-left: auto; }
+.status { min-height: 22px; font-size: 13px; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+.status .stop { display: none; }
+.status.busy .stop { display: inline-block; }
+.status a { color: var(--ink); }
 
-.btn {
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: transform .08s ease, border-color .15s ease;
+.sheetbox { margin-top: 16px; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 0 var(--line); background: #E4E1DA; }
+.sheetbox svg { display: block; width: 100%; height: auto; }
+.empty {
+  aspect-ratio: 4/5; display: grid; place-items: center; text-align: center; color: #8C8577; font-size: 13.5px; padding: 30px;
+  background: repeating-linear-gradient(0deg, transparent 0 13px, rgba(80, 75, 65, .07) 13px 14px), repeating-linear-gradient(90deg, transparent 0 13px, rgba(80, 75, 65, .07) 13px 14px), #EFEDE7;
 }
+.empty svg { width: 120px; margin: 0 auto 14px; opacity: .6; }
 
-.btn:hover { border-color: var(--muted); }
-.btn:active { transform: translateY(1px); }
+.tools { display: none; margin-top: 12px; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.tools.on { display: flex; }
+.inks { display: flex; gap: 10px; }
+.inks button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: 0 0 0 1px var(--muted); }
+.inks button[aria-pressed=true] { border-color: var(--bg); box-shadow: 0 0 0 2px var(--ink); }
+.fix { display: none; margin-top: 14px; gap: 8px; }
+.fix.on { display: flex; }
+.fix input { flex: 1; min-width: 0; }
+.saves { display: none; margin-top: 12px; gap: 8px; flex-wrap: wrap; }
+.saves.on { display: flex; }
 
-.btn-primary {
-  background: var(--accent);
-  border-color: transparent;
-  color: var(--accent-ink);
+h2 { font-family: "Shippori Mincho", serif; font-weight: 600; font-size: 16px; letter-spacing: .1em; margin: 34px 0 10px; }
+.hist { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.hist button { border: 1px solid var(--line); background: #EFEDE7; border-radius: 8px; padding: 6px; cursor: pointer; aspect-ratio: 1; }
+.hist svg { width: 100%; height: 100%; display: block; }
+.note { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+.note a { color: var(--ink); }
+.ver { margin: 30px 0 0; font-size: 11px; color: var(--muted); text-align: center; opacity: .7; }
+
+/* 設定 (下から出るシート) */
+dialog {
+  border: 0; padding: 0; margin: auto 0 0; width: 100%; max-width: none;
+  background: var(--surface); color: var(--ink); border-radius: 16px 16px 0 0;
 }
+dialog::backdrop { background: rgba(0, 0, 0, .35); }
+.sheet { padding: 6px 18px calc(env(safe-area-inset-bottom, 0px) + 18px); display: grid; gap: 10px; }
+.sheet h2 { margin: 14px 0 0; }
 
-#stage {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 24px;
-  text-align: center;
-}
-
-.lead { margin: 0; font-size: 18px; font-weight: 700; }
-
-.result {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--accent);
-}
-
-.note {
-  margin: 0;
-  max-width: 34em;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.9;
-}
-
-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: .95em;
-}
-
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes fadein { to { opacity: 1; } }
+.draw .gd { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1s cubic-bezier(.4, .1, .3, 1) forwards; animation-delay: var(--d); }
+.draw .mass, .draw .dots, .draw .fin { opacity: 0; animation: fadein .9s ease forwards; animation-delay: 1.25s; }
 @media (prefers-reduced-motion: reduce) {
-  * { transition-duration: .01ms !important; animation: none !important; }
+  .draw .gd { animation: none; stroke-dashoffset: 0; }
+  .draw .mass, .draw .dots, .draw .fin { animation: none; opacity: 1; }
 }
