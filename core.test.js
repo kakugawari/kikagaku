@@ -140,3 +140,33 @@ test('wrapJa: 行数を越えたら … で切る', () => {
   assert.deepStrictEqual(Core.wrapJa('あいうえおかきくけこ', 3, 2), ['あいう', 'えお…']);
   assert.deepStrictEqual(Core.wrapJa('', 3, 2), []);
 });
+
+test('黄金比の組: 並びから 2 組を見つけ、比に入らない円は拾わない', () => {
+  const pairs = Core.goldenPairs([{ r: 100 }, { r: 161.8 }, { r: 261.8 }, { r: 150 }, { r: 100.2 }]);
+  assert.deepStrictEqual(pairs.map((p) => [p.a, p.b]), [[100, 161.8], [161.8, 261.8]], '同じ半径の円は 1 つにまとめる');
+});
+
+test('黄金比の組: ずれは 1.5% まで', () => {
+  assert.strictEqual(Core.goldenPairs([{ r: 100 }, { r: 163.4 }]).length, 1, '1% ずれは入る');
+  assert.strictEqual(Core.goldenPairs([{ r: 100 }, { r: 165 }]).length, 0, '2% ずれは入らない');
+  assert.strictEqual(Core.goldenPairs([{ r: 62 }, { r: 100 }]).length, 1, '整数に丸めた 62 : 100 も入る');
+  assert.strictEqual(Core.goldenPairs([]).length, 0);
+});
+
+test('頼み方: 黄金比を選ぶと、新しく作るときも、なおすときも指示が入る', () => {
+  const key = 'golden ratio';
+  assert.ok(Core.buildPrompt('鶴', 'auto', null, null, 'golden').includes(key));
+  assert.ok(Core.buildPrompt('鶴', 'auto', '翼を大きく', FIX, 'golden').includes(key));
+  assert.ok(!Core.buildPrompt('鶴', 'auto', null, null, 'free').includes(key));
+  assert.ok(!Core.buildPrompt('鶴', 'auto', null, null).includes(key), '指定なしは自由');
+});
+
+test('設計図: 黄金比の組に入る円だけ金茶で引き、組の数を書き添える', () => {
+  const G = FIX.golden;
+  const g = Core.buildGuides(G);
+  const sheet = Core.sheetSVG({ data: G, guides: g, bbox: Core.pathBBox(G.shapes), ink: '#000', brand: '' }, false);
+  assert.strictEqual((sheet.match(/class="gd phi"/g) || []).length, 3, '100・161.8・261.8 の 3 つ (150 は入らない)');
+  assert.ok(/φ 黄金比 2組 ― r100 : r162 · r162 : r262/.test(sheet), sheet.match(/φ[^<]*/));
+  const plain = Core.sheetSVG({ data: FIX, guides: Core.buildGuides(FIX), bbox: null, ink: '#000', brand: '' }, false);
+  assert.ok(!plain.includes('phi') && !plain.includes('φ'), '組が無ければ何も足さない');
+});

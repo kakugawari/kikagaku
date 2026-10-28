@@ -9,12 +9,12 @@
   'use strict';
 
   const C = window.Core;
-  const VERSION = '0.1.0';
+  const VERSION = '0.2.0';
   const $ = (id) => document.getElementById(id);
 
   const S = {
-    data: null, guides: null, bbox: null, ink: C.INKS[0].c, view: 'sheet', frame: 'auto', tier: 'default',
-    busy: false, ctl: null, brand: '', desc: '', lastPrompt: null
+    data: null, guides: null, bbox: null, ink: C.INKS[0].c, view: 'sheet', frame: 'auto', ratio: 'free', tier: 'default',
+    busy: false, ctl: null, brand: '', desc: '', descRatio: 'free', lastPrompt: null
   };
   // provider: 'claude' (claude.ai の中) / 'key' (自分のキー) / null (まだ決まっていない)
   let provider = null, sample = null, downloads = null;
@@ -39,6 +39,7 @@
     });
   }
   const pressView = () => [...$('viewSeg').children].forEach((x) => x.setAttribute('aria-pressed', x.dataset.v === S.view));
+  const pressRatio = () => [...$('ratioSeg').children].forEach((x) => x.setAttribute('aria-pressed', x.dataset.v === S.ratio));
   const pressInk = () => [...$('inks').children].forEach((x, i) => x.setAttribute('aria-pressed', C.INKS[i].c === S.ink));
 
   /* ---------- 描画 ---------- */
@@ -132,14 +133,17 @@
     setMsg(line(), true);
     const tick = setInterval(() => setMsg(line(), true), 1000);
     try {
-      const prompt = C.buildPrompt(desc, S.frame, fixText, fixText ? S.data : null);
+      // なおすときは、もとの作図の比率を引き継ぐ
+      const ratio = fixText ? S.descRatio : S.ratio;
+      const prompt = C.buildPrompt(desc, S.frame, fixText, fixText ? S.data : null, ratio);
       S.lastPrompt = prompt;
       const raw = await ask(prompt, S.tier, S.ctl.signal, (n) => { got = n; });
       const data = C.normalize(raw);
-      if (!fixText) { S.desc = desc; S.brand = $('brand').value.trim(); }
+      if (!fixText) { S.desc = desc; S.descRatio = ratio; S.brand = $('brand').value.trim(); }
       show(data);
       pushHistory();
-      setMsg(`できました(${Math.round((Date.now() - t0) / 1000)}秒・円${S.guides.circles.length}・線${S.guides.lines.length})`);
+      const phi = S.guides.golden.length;
+      setMsg(`できました(${Math.round((Date.now() - t0) / 1000)}秒・円${S.guides.circles.length}・線${S.guides.lines.length}${phi ? `・φ${phi}組` : ''})`);
       if (fixText) $('fixText').value = '';
     } catch (e) {
       const code = e && (e.code || (e.name === 'AbortError' && 'cancelled'));
@@ -158,13 +162,14 @@
   const loadH = () => { try { const h = JSON.parse(store.get(HK) || '[]'); return Array.isArray(h) ? h : []; } catch (e) { return []; } };
   function pushHistory() {
     const h = loadH();
-    h.unshift({ t: Date.now(), desc: S.desc, brand: S.brand, ink: S.ink, data: S.data, bbox: S.bbox });
+    h.unshift({ t: Date.now(), desc: S.desc, ratio: S.descRatio, brand: S.brand, ink: S.ink, data: S.data, bbox: S.bbox });
     store.set(HK, JSON.stringify(h.slice(0, 16)));
     drawHistory();
   }
   function openItem(item) {
     S.desc = item.desc || ''; S.brand = item.brand || ''; S.ink = item.ink || C.INKS[0].c;
-    $('desc').value = S.desc; $('brand').value = S.brand; pressInk();
+    S.ratio = S.descRatio = item.ratio === 'golden' ? 'golden' : 'free';
+    $('desc').value = S.desc; $('brand').value = S.brand; pressInk(); pressRatio();
     show(item.data);
     setMsg(''); $('stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -254,6 +259,7 @@
   /* ---------- 立ち上げ ---------- */
   function main() {
     segInit('frameSeg', 'frame');
+    segInit('ratioSeg', 'ratio');
     segInit('tierSeg', 'tier');
     segInit('viewSeg', 'view', () => render(false));
 

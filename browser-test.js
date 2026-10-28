@@ -342,6 +342,53 @@ async function run() {
     ok(await inPage.locator('#apiKey').isHidden(), '設定にキーの欄は出ない');
     await inCtx.close();
 
+    // ------------------------------------------------ 黄金比
+    section('黄金比');
+    const gCtx = await browser.newContext({ ...PHONE, serviceWorkers: 'block' });
+    await gCtx.addInitScript((g) => {
+      window.__asked = [];
+      window.claude = { use: async (name) => name === 'sample' ? { json: async (prompt) => { window.__asked.push(prompt); return g; } } : null };
+    }, FIX.golden);
+    const gPage = await gCtx.newPage();
+    watch(gPage, '黄金比');
+    await gPage.goto(URL);
+    await gPage.waitForFunction(() => window.__app);
+    await gPage.evaluate(() => window.__app.ready);
+    const ratioSeg = await gPage.evaluate(() => {
+      const r = document.getElementById('ratioSeg').getBoundingClientRect();
+      return { right: r.right, w: innerWidth, on: document.querySelector('#ratioSeg [aria-pressed="true"]').dataset.v };
+    });
+    ok(ratioSeg.right <= ratioSeg.w && ratioSeg.on === 'free', `「比率」の段が画面に収まり、はじめは自由 (右端 ${Math.round(ratioSeg.right)}/${ratioSeg.w})`);
+    await gPage.locator('#desc').fill('鶴');
+    await gPage.locator('#ratioSeg button[data-v="golden"]').tap();
+    await gPage.locator('#go').tap();
+    await gPage.waitForFunction(() => /できました/.test(document.getElementById('msg').textContent), null, { timeout: 5000 });
+    const gRes = await gPage.evaluate(() => ({
+      asked: window.__asked[0], msg: document.getElementById('msg').textContent,
+      phi: document.querySelectorAll('#stage .gd.phi').length,
+      note: (document.querySelector('#stage .phinote') || {}).textContent || ''
+    }));
+    ok(gRes.asked.includes('golden ratio'), '黄金比を選ぶと、頼みに黄金比の指示が入る');
+    ok(gRes.phi === 3, `黄金比の組に入る円が金茶で引かれる (${gRes.phi})`);
+    ok(/φ 黄金比 2組/.test(gRes.note), `設計図に組の数が書き添えられる (${gRes.note})`);
+    ok(/φ2組/.test(gRes.msg), `できたときの知らせにも出る (${gRes.msg})`);
+    // 段を自由に戻しても、なおすときはもとの作図の比率を引き継ぐ
+    await gPage.locator('#ratioSeg button[data-v="free"]').tap();
+    await gPage.locator('#fixText').fill('翼を大きく');
+    await gPage.locator('#fixGo').tap();
+    await gPage.waitForFunction(() => window.__asked.length === 2, null, { timeout: 5000 });
+    ok(await gPage.evaluate(() => window.__asked[1].includes('golden ratio')), 'なおすときは、もとの作図の黄金比を引き継ぐ');
+    await gPage.locator('#desc').fill('亀');
+    await gPage.locator('#go').tap();
+    await gPage.waitForFunction(() => window.__asked.length === 3, null, { timeout: 5000 });
+    ok(await gPage.evaluate(() => !window.__asked[2].includes('golden ratio')), '自由に戻して作図すると、指示は入らない');
+    // これまでの作図から開くと、比率の段もその作図のものに戻る
+    await gPage.reload();
+    await gPage.waitForFunction(() => window.__app);
+    await gPage.locator('#hist button').last().tap();
+    ok(await gPage.evaluate(() => document.querySelector('#ratioSeg [aria-pressed="true"]').dataset.v) === 'golden', '黄金比で作った物を開くと、比率の段も黄金比に戻る');
+    await gCtx.close();
+
     // ------------------------------------------------ 明るい画面・暗い画面
     section('明るい画面と暗い画面');
     for (const scheme of ['light', 'dark']) {

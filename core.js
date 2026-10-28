@@ -95,6 +95,34 @@
     return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
   }
 
+  /* ---------- 黄金比 ---------- */
+  const PHI = (1 + Math.sqrt(5)) / 2;
+  const PHI_TOL = 0.015;   // 比が φ から 1.5% 以内なら黄金比とみなす (半径は整数や小数 1 桁に丸めて返ってくる)
+
+  /**
+   * 円の半径どうしで、比が黄金比になっている組を探す。
+   * 同じ半径の円は 1 つにまとめて数える。返すのは小さい順の組 [{a, b, ratio}]
+   */
+  function goldenPairs(circles) {
+    const radii = [];
+    (circles || []).forEach((c) => {
+      if (!c || !num(c.r) || c.r <= 0) return;
+      if (!radii.some((r) => Math.abs(r - c.r) <= Math.max(0.5, r * 0.002))) radii.push(c.r);
+    });
+    radii.sort((x, y) => x - y);
+    const pairs = [];
+    for (let i = 0; i < radii.length; i++) {
+      for (let j = i + 1; j < radii.length; j++) {
+        const ratio = radii[j] / radii[i];
+        if (Math.abs(ratio / PHI - 1) <= PHI_TOL) pairs.push({ a: radii[i], b: radii[j], ratio });
+      }
+    }
+    return pairs;
+  }
+
+  /** その円が、黄金比の組のどれかに入っているか */
+  const inGolden = (c, pairs) => pairs.some((p) => [p.a, p.b].some((r) => Math.abs(r - c.r) <= Math.max(0.5, r * 0.002)));
+
   /** 設計図に引く補助線: 宣言された円と線 + 弧から逆算した円 + 長い辺の延長 */
   function buildGuides(data) {
     const circles = [], lines = [], crosses = [];
@@ -120,7 +148,8 @@
     (data.lines || []).forEach((l) => { if ([l.x1, l.y1, l.x2, l.y2].every(num)) addL(l.x1, l.y1, l.x2, l.y2); });
     allSegs.map((s) => ({ s, L: Math.hypot(s[2] - s[0], s[3] - s[1]) })).filter((o) => o.L > 55)
       .sort((a, b) => b.L - a.L).slice(0, 16).forEach((o) => addL(...o.s));
-    return { circles: circles.slice(0, 60), lines: lines.slice(0, 40), crosses: crosses.slice(0, 30), verts: verts.slice(0, 400) };
+    const kept = circles.slice(0, 60);
+    return { circles: kept, lines: lines.slice(0, 40), crosses: crosses.slice(0, 30), verts: verts.slice(0, 400), golden: goldenPairs(kept) };
   }
 
   /* ---------- 描画 (SVG の文字列を作る) ---------- */
@@ -145,7 +174,14 @@
     const guideInk = '#5F5B52';
     let k = 0;
     const delay = () => `style="--d:${Math.min(k++ * 22, 1100)}ms"`;
-    const gc = g.circles.map((c) => `<path class="gd" pathLength="1" d="${circD(c)}" ${delay()}/>`).join('');
+    const golden = g.golden || [];
+    // 黄金比の組に入る円は金茶で引く
+    const gc = g.circles.map((c) => inGolden(c, golden)
+      ? `<path class="gd phi" pathLength="1" d="${circD(c)}" stroke="${PHI_INK}" stroke-opacity=".9" stroke-width="2.6" ${delay()}/>`
+      : `<path class="gd" pathLength="1" d="${circD(c)}" ${delay()}/>`).join('');
+    const phiNote = golden.length
+      ? `<text class="phinote" x="500" y="142" text-anchor="middle" font-family="'Shippori Mincho',serif" font-size="17" fill="${PHI_INK}" letter-spacing="1">φ 黄金比 ${golden.length}組 ― ${esc(golden.slice(0, 3).map((p) => `r${Math.round(p.a)} : r${Math.round(p.b)}`).join(' · '))}${golden.length > 3 ? ' …' : ''}</text>`
+      : '';
     const gl = g.lines.map((l) => `<path class="gd" pathLength="1" d="M${r1(l.x1)} ${r1(l.y1)}L${r1(l.x2)} ${r1(l.y2)}" ${delay()}/>`).join('');
     const cr = g.crosses.map(([x, y]) => `<path d="M${r1(x - 7)} ${r1(y)}H${r1(x + 7)}M${r1(x)} ${r1(y - 7)}V${r1(y + 7)}"/>`).join('');
     const dots = g.verts.map(([x, y]) => `<circle cx="${r1(x)}" cy="${r1(y)}" r="2.6"/>`).join('');
@@ -177,6 +213,7 @@
 <line x1="40" y1="990" x2="960" y2="990" stroke="#9B958A" stroke-opacity=".45"/>
 <line x1="730" y1="990" x2="730" y2="1210" stroke="#9B958A" stroke-opacity=".45"/>
 <text x="500" y="108" text-anchor="middle" font-family="'Cormorant Garamond','Shippori Mincho',serif" font-size="38" font-weight="600" fill="#3C3830" letter-spacing="1">${esc(title)}</text>
+${phiNote}
 <text x="95" y="1048" font-family="'Shippori Mincho',serif" font-size="17" fill="#5C574D" letter-spacing="5">コンセプト</text>
 <g font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="19.5" fill="#6A655B">
   ${lines.map((t, i) => `<text x="95" y="${1092 + i * 33}">${esc(t)}</text>`).join('')}
@@ -201,6 +238,11 @@
   }
 
   /* ---------- 頼み方 ---------- */
+  const PHI_INK = '#9A6B1F';
+  const RATIO = {
+    free: '',
+    golden: `Proportion — golden ratio: base the whole construction on the golden ratio φ = 1.618. Choose a base radius u (about 60–110) and take EVERY construction circle radius from the series u·φ^n (n = −2 … 4), e.g. 38.2, 61.8, 100, 161.8, 261.8, 423.6 when u = 100. Where you can, make key distances (between circle centres, and from the mark's centre) members of the same series too. Write each radius with 1 decimal, as the exact series value.`
+  };
   const FRAME = {
     auto: 'Choose the framing that suits the subject best (free-standing figure, or enclosed in a ring like a Japanese kamon).',
     ring: 'Enclose the figure in a bold circular ring like a Japanese kamon (family crest). Parts of the figure may overlap or break the ring, separated by clean gaps.',
@@ -219,7 +261,8 @@ Method — follow it literally:
 Path syntax: absolute commands M, L, A, Z only. Separate every number with a space, write the two arc flags as separate 0/1 tokens, round to 1 decimal. Each closed outline ends with Z.`;
 
   /** current があれば「なおす」の頼み方になる */
-  function buildPrompt(desc, frame, fix, current) {
+  function buildPrompt(desc, frame, fix, current, ratio) {
+    const prop = RATIO[ratio] ? `\n\n${RATIO[ratio]}` : '';
     if (fix && current) {
       const cur = JSON.stringify({ title: current.title, concept: current.concept, circles: current.circles, lines: current.lines, shapes: current.shapes });
       return `You are a logo designer who constructs marks with compass and straightedge, in the tradition of classic emblems and Japanese kamon.
@@ -231,7 +274,7 @@ Here is the current design:
 ${cur}
 
 Revise the design according to this request from the client (keep everything else that works):
-"""${fix}"""
+"""${fix}"""${prop}
 
 ${METHOD}
 
@@ -242,7 +285,7 @@ ${FORMAT}`;
     return `You are a logo designer who constructs marks with compass and straightedge, in the tradition of classic emblems and Japanese kamon. Design a flat, single-colour logo mark for this brief:
 """${desc}"""
 
-${FRAME[frame] || FRAME.auto}
+${FRAME[frame] || FRAME.auto}${prop}
 
 ${METHOD}
 
@@ -353,7 +396,7 @@ ${FORMAT}`;
   }
 
   return {
-    INKS, esc, num, r1, cleanD, parsePath, arcCenter, pathBBox, buildGuides, circD, massPaths,
+    INKS, PHI, goldenPairs, RATIO, esc, num, r1, cleanD, parsePath, arcCenter, pathBBox, buildGuides, circD, massPaths,
     wrapJa, padBox, sheetSVG, logoSVG, fileName, FRAME, buildPrompt, normalize, extractJSON,
     MODEL, SCHEMA, buildRequest, createStreamReader, apiErrorCode
   };
